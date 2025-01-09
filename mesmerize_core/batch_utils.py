@@ -73,7 +73,14 @@ class _BasePathExtensions:
             if self._data.attrs["batch_path"] is not None:
                 return self._data.attrs["batch_path"]
         else:
-            raise ValueError("Batch path is not set")
+            if isinstance(self._data, pd.DataFrame):
+                if "batch_path" in self._data.columns:
+                    return Path(self._data["batch_path"])
+            elif isinstance(self._data, pd.Series):
+                if "batch_path" in self._data:
+                    return Path(self._data["batch_path"])
+            else:
+                raise ValueError("No batch-path found in df columns or attributes.")
 
     def resolve(self, path: Union[str, Path]) -> Path:
         """
