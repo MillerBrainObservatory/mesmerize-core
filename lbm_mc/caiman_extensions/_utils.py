@@ -2,7 +2,7 @@ from functools import wraps
 from typing import Union
 from uuid import UUID
 
-from mesmerize_core.caiman_extensions._batch_exceptions import BatchItemNotRunError, BatchItemUnsuccessfulError, \
+from ..caiman_extensions._batch_exceptions import BatchItemNotRunError, BatchItemUnsuccessfulError, \
     WrongAlgorithmExtensionError, PreventOverwriteError
 
 
