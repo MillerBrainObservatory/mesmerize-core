@@ -37,7 +37,7 @@ classifiers = \
 
 
 setup(
-    name="mesmerize-core",
+    name="lcp_mc",
     description="High level pandas-based API for batch analysis of Calcium Imaging data using CaImAn",
     long_description=readme,
     long_description_content_type='text/markdown',
