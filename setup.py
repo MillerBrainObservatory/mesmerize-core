@@ -18,7 +18,7 @@ install_requires = [
 with open(Path(__file__).parent.joinpath("README.md")) as f:
     readme = f.read()
 
-with open(Path(__file__).parent.joinpath("mesmerize_core", "VERSION"), "r") as f:
+with open(Path(__file__).parent.joinpath("lbm_mc", "VERSION"), "r") as f:
     ver = f.read().split("\n")[0]
 
 
