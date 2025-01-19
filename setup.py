@@ -18,7 +18,7 @@ install_requires = [
 with open(Path(__file__).parent.joinpath("README.md")) as f:
     readme = f.read()
 
-with open(Path(__file__).parent.joinpath("lbm_mc", "VERSION"), "r") as f:
+with open(Path(__file__).parent.joinpath("mesmerize_core_lbm", "VERSION"), "r") as f:
     ver = f.read().split("\n")[0]
 
 
@@ -37,7 +37,7 @@ classifiers = \
 
 
 setup(
-    name="lcp_mc",
+    name="mesmerize_core_lbm",
     description="High level pandas-based API for batch analysis of Calcium Imaging data using CaImAn",
     long_description=readme,
     long_description_content_type='text/markdown',
