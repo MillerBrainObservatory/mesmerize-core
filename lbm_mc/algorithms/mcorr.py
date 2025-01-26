@@ -13,7 +13,7 @@ import time
 
 # prevent circular import
 if __name__ in ["__main__", "__mp_main__"]:  # when running in subprocess
-    from mesmerize_core import set_parent_raw_data_path, load_batch
+    from lbm_mc import set_parent_raw_data_path, load_batch
 else:  # when running with local backend
     from ..batch_utils import set_parent_raw_data_path, load_batch
 
