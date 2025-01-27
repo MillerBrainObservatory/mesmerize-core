@@ -303,7 +303,7 @@ class CNMFExtensions:
 
         for contour in contours:
             coors = contour["coordinates"]
-            coors = coors[~np.isnan(coors).any(axis=1)]
+            #coors = coors[~np.isnan(coors).any(axis=1)]
             coordinates.append(coors)
 
             com = coors.mean(axis=0)
