@@ -1,4 +1,6 @@
 pandas>=1.5.0
+tifffile
+ffmpeg-python
 pytest
 requests
 tqdm
