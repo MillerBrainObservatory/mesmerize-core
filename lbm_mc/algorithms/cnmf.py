@@ -3,6 +3,7 @@ import click
 import caiman as cm
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.source_extraction.cnmf.params import CNMFParams
+from caiman.utils.visualization import get_contours as caiman_get_contours
 import psutil
 import numpy as np
 import traceback
@@ -94,6 +95,14 @@ def run_algo(batch_path, uuid, data_path: str = None):
 
         print("performing eval")
         cnm.estimates.evaluate_components(images, cnm.params, dview=dview)
+        dims = cnm.dims
+        if dims is None:
+            dims = cnm.estimates.dims
+
+        dims = dims[1], dims[0]
+        contours = caiman_get_contours(cnm.estimates.A, dims, thr=0.9)
+        contours = contours[0]
+        print(f"Contours extracted. {contours}")
 
         output_path = output_dir.joinpath(f"{uuid}.hdf5").resolve()
 
