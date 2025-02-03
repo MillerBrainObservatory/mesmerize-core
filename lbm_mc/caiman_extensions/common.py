@@ -29,7 +29,6 @@ from .cnmf import cnmf_cache
 from .. import algorithms
 from ..movie_readers import default_reader
 
-
 ALGO_MODULES = {
     "cnmf": algorithms.cnmf,
     "mcorr": algorithms.mcorr,
@@ -286,14 +285,52 @@ class CaimanDataFrameExtensions:
 
         if remove_data:
             try:
+
                 rmtree(self._df.paths.get_batch_path().parent.joinpath(u))
             except PermissionError:
                 raise PermissionError(
                     "You do not have permissions to remove the "
                     "output data for the batch item, aborting."
+                    "If using Jupyter on Windows, try restarting the kernel."
                 )
             except FileNotFoundError:
                 pass
+            try:
+                # look for results files and remove them
+                reg_path = self._df.paths.get_batch_path().parent.joinpath(".registration")
+                seg_path = self._df.paths.get_batch_path().parent.joinpath(".segmentation")
+
+                if reg_path.exists():
+                    print(f"Removing registratioin results")
+                    files = list(reg_path.glob(f"*{u}*"))  # anything with this uuid
+                    print(f'files: {files}')
+                    for f in files:
+                        print(f"Removing {f}")
+                        try:
+                            f.unlink()
+                            print(f"Removed {f}")
+                        except FileNotFoundError:
+                            print(f"File {f} not found")
+                            pass
+
+                if seg_path.exists():
+                    print(f"Removing segmentation results")
+                    files = list(seg_path.glob(f"*{u}*"))
+                    print(f'files: {files}')
+                    for f in files:
+                        print(f"Removing {f}")
+                        try:
+                            f.unlink()
+                            print(f"Removed {f}")
+                        except FileNotFoundError:
+                            print(f"File {f} not found")
+                            pass
+            except PermissionError:
+                raise PermissionError(
+                    "You do not have permissions to remove the "
+                    "output data for the batch item, aborting."
+                    "If using Jupyter on Windows, try restarting the kernel."
+                )
 
         # Drop selected index
         self._df.drop([index], inplace=True)
@@ -322,7 +359,8 @@ class CaimanDataFrameExtensions:
             `item_name`. The returned index corresponds to the
             index of the original DataFrame
 
-        """            
+        """
+
         def flatten_params(params_dict: dict):
             """
             Produce a flat dict with one entry for each parameter in the passed dict.
@@ -337,7 +375,7 @@ class CaimanDataFrameExtensions:
                 else:
                     params[key1] = val1
             return params
-        
+
         sub_df = self._df[self._df["item_name"] == item_name]
         sub_df = sub_df[sub_df["algo"] == algo]
 
@@ -362,7 +400,8 @@ class CaimanDataFrameExtensions:
 
             # second, look at params in the common set and remove any that differ for this set
             for key in common_paramset:  # iterate over this set rather than dict itself to avoid issues when deleting entries
-                if not np.array_equal(common_params[key], this_params[key]):  # (should also work for scalars/arbitrary objects)
+                if not np.array_equal(common_params[key],
+                                      this_params[key]):  # (should also work for scalars/arbitrary objects)
                     varying_params.add(key)
                     del common_params[key]
 
@@ -457,9 +496,14 @@ class CaimanDataFrameExtensions:
             if _potential_parent == input_movie_path:
                 return r["uuid"]
 
+    def remove_images(self):
+        path = self._df.paths.get_batch_path().parent.joinpath(".registration")
+        return path
+
 
 class DummyProcess:
     """Dummy process for local backend"""
+
     def wait(self):
         pass
 
@@ -491,10 +535,10 @@ class CaimanSeriesExtensions:
         return DummyProcess()
 
     def _run_subprocess(
-        self,
-        runfile_path: str,
-        wait: bool,
-        **kwargs
+            self,
+            runfile_path: str,
+            wait: bool,
+            **kwargs
     ):
 
         # Get the dir that contains the input movie
@@ -510,11 +554,11 @@ class CaimanSeriesExtensions:
         return self.process
 
     def _run_slurm(
-        self,
-        runfile_path: str,
-        wait: bool,
-        sbatch_opts: str = '',
-        **kwargs
+            self,
+            runfile_path: str,
+            wait: bool,
+            sbatch_opts: str = '',
+            **kwargs
     ):
         """
         Run on a cluster using SLURM. Configurable options (to pass to run):
@@ -541,17 +585,17 @@ class CaimanSeriesExtensions:
 
         # --wait means that the lifetme of the created process corresponds to the lifetime of the job
         submission_opts = [
-            f'--job-name={self._series["algo"]}-{uuid[:8]}',
-            '--ntasks=1',
-            f'--cpus-per-task={n_procs}',
-            f'--output={output_path}',
-            '--wait'
-            ] + shlex.split(sbatch_opts)
-        
+                              f'--job-name={self._series["algo"]}-{uuid[:8]}',
+                              '--ntasks=1',
+                              f'--cpus-per-task={n_procs}',
+                              f'--output={output_path}',
+                              '--wait'
+                          ] + shlex.split(sbatch_opts)
+
         self.process = Popen(['sbatch', *submission_opts, runfile_path])
         if wait:
             self.process.wait()
-        
+
         return self.process
 
     @cnmf_cache.invalidate()
@@ -718,3 +762,14 @@ class CaimanSeriesExtensions:
             self._series["outputs"][f"{proj_type}-projection-path"]
         )
         return np.load(path)
+
+    @validate()
+    def get_results_path(self) -> np.ndarray:
+        """
+        Returns
+        -------
+        pathlib.Path
+            path to the results directory
+        """
+        return self._series.paths.resolve(self._series["outputs"]["results-path"])
+
