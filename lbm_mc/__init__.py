@@ -4,12 +4,11 @@ from .batch_utils import (
     load_batch,
     create_batch,
 )
+from .utils import save_mp4, extract_center_square, get_rand_mean_max, plot_comparison
 from .caiman_extensions import *
-from pathlib import Path
+from . import _version
 
-
-with open(Path(__file__).parent.joinpath("VERSION"), "r") as f:
-    __version__ = f.read().split("\n")[0]
+__version__ = _version.get_versions()['version']
 
 __all__ = [
     "set_parent_raw_data_path",
@@ -20,7 +19,9 @@ __all__ = [
     "CaimanSeriesExtensions",
     "CNMFExtensions",
     "MCorrExtensions",
+    "save_mp4",
+    "extract_center_square",
+    "get_rand_mean_max",
+    "plot_comparison",
 ]
 
-from . import _version
-__version__ = _version.get_versions()['version']
