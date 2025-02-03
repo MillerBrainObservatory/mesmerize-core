@@ -14,7 +14,8 @@ install_requires = [
     "click",
     "psutil",
     "jupyterlab",
-    "filelock"
+    "filelock",
+    "ffmpeg-python"
 ]
 
 
