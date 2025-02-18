@@ -4,7 +4,7 @@ from .batch_utils import (
     load_batch,
     create_batch,
 )
-from .utils import save_mp4, extract_center_square, get_rand_mean_max, plot_comparison
+from .utils import save_mp4, extract_center_square, get_rand_mean_max, plot_comparison, export_contours_with_params
 from .caiman_extensions import *
 from . import _version
 
@@ -23,5 +23,6 @@ __all__ = [
     "extract_center_square",
     "get_rand_mean_max",
     "plot_comparison",
+    "export_contours_with_params",
 ]
 

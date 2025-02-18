@@ -15,6 +15,8 @@ from warnings import warn
 import sys
 from tempfile import NamedTemporaryFile
 from subprocess import check_call
+
+import pandas as pd
 import tifffile
 import ffmpeg
 from matplotlib import colormaps as cm

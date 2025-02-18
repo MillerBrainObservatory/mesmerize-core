@@ -3,6 +3,7 @@ import click
 import caiman as cm
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.source_extraction.cnmf.params import CNMFParams
+from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from caiman.utils.visualization import get_contours as caiman_get_contours
 import psutil
 import numpy as np
@@ -15,10 +16,37 @@ import time
 # prevent circular import
 if __name__ in ["__main__", "__mp_main__"]:  # when running in subprocess
     from lbm_mc import set_parent_raw_data_path, load_batch
-    from lbm_mc.utils import IS_WINDOWS
+    from lbm_mc.utils import IS_WINDOWS, export_contours_with_params
 else:  # when running with local backend
     from ..batch_utils import set_parent_raw_data_path, load_batch
-    from ..utils import IS_WINDOWS
+    from ..utils import IS_WINDOWS, export_contours_with_params
+
+
+def post_process(batch_path, uuid, data_path):
+    print(f'Running post-processing for {uuid}')
+    set_parent_raw_data_path(data_path)
+    df = load_batch(batch_path)
+    item = df.loc[df["uuid"] == uuid]
+    model = item.cnmf.get_output()
+    print("removing small and large neurons")
+    min_size = 50
+    max_size = 150
+    model.estimates.A_thr = None
+    model.estimates.threshold_spatial_components(maxthr=0.01)
+
+    model.estimates.remove_small_large_neurons(min_size_neuro=min_size, max_size_neuro=max_size, select_comp=True)
+    if model.estimates.idx_components is None:
+        print("After thresholding/removing small-large neurons, idx_components is None")
+    else:
+        print(f"Number of components - remove small/large: {len(model.estimates.idx_components)}")
+
+    # make output summary dir
+    output_summary_dir = Path(batch_path).parent.joinpath(".segmentation")
+    output_summary_dir.mkdir(parents=False, exist_ok=True)
+    save_path = output_summary_dir.joinpath(
+        f"{item.item_name}_accepted__rejected_posteval_neurons_{item.uuid}.png"
+    )
+    export_contours_with_params(item, save_path)
 
 
 def run_algo(batch_path, uuid, data_path: str = None):
@@ -52,7 +80,7 @@ def run_algo(batch_path, uuid, data_path: str = None):
         n_processes = psutil.cpu_count() - 1
     # Start cluster for parallel processing
     c, dview, n_processes = cm.cluster.setup_cluster(
-        backend="local", n_processes=n_processes, single_thread=False
+        backend="multiprocessing", n_processes=n_processes, single_thread=False
     )
 
     # merge cnmf and eval kwargs into one dict
@@ -79,7 +107,7 @@ def run_algo(batch_path, uuid, data_path: str = None):
         # in fname new load in memmap order C
         cm.stop_server(dview=dview)
         c, dview, n_processes = cm.cluster.setup_cluster(
-            backend="local", n_processes=None, single_thread=False
+            backend="single", n_processes=None, single_thread=False
         )
 
         print("performing CNMF")
@@ -87,25 +115,18 @@ def run_algo(batch_path, uuid, data_path: str = None):
 
         print("fitting images")
         cnm = cnm.fit(images)
-        #
+
         if "refit" in params.keys():
             if params["refit"] is True:
-                print("refitting")
+                print(f"refitting images of shape: {images.shape}")
                 cnm = cnm.refit(images, dview=dview)
 
         print("performing eval")
-        cnm.estimates.evaluate_components(images, cnm.params, dview=dview)
-        dims = cnm.dims
-        if dims is None:
-            dims = cnm.estimates.dims
-
-        dims = dims[1], dims[0]
-        contours = caiman_get_contours(cnm.estimates.A, dims, thr=0.9)
-        contours = contours[0]
-        print(f"Contours extracted. {contours}")
+        estimates = cnm.estimates.evaluate_components(images, cnm.params, dview=dview)
+        print(f"Number of components - evaluate: {len(estimates.idx_components)}")
 
         output_path = output_dir.joinpath(f"{uuid}.hdf5").resolve()
-
+        print(f"Saving model to {output_path}")
         cnm.save(str(output_path))
 
         Cn = cm.local_correlations(images, swap_dim=False)
@@ -140,14 +161,14 @@ def run_algo(batch_path, uuid, data_path: str = None):
                 "traceback": None,
             }
         )
-
     except:
         d = {"success": False, "traceback": traceback.format_exc()}
 
     cm.stop_server(dview=dview)
-    
+
     runtime = round(time.time() - algo_start, 2)
     df.caiman.update_item_with_results(uuid, d, runtime)
+
 
 @click.command()
 @click.option("--batch-path", type=str)
@@ -155,6 +176,7 @@ def run_algo(batch_path, uuid, data_path: str = None):
 @click.option("--data-path")
 def main(batch_path, uuid, data_path: str = None):
     run_algo(batch_path, uuid, data_path)
+    post_process(batch_path, uuid, data_path)
 
 
 if __name__ == "__main__":
