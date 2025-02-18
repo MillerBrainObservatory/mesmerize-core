@@ -26,7 +26,7 @@ def post_process(batch_path, uuid, data_path):
     print(f'Running post-processing for {uuid}')
     set_parent_raw_data_path(data_path)
     df = load_batch(batch_path)
-    item = df.loc[df["uuid"] == uuid]
+    item = df.loc[df["uuid"] == uuid].squeeze()
     model = item.cnmf.get_output()
     print("removing small and large neurons")
     min_size = 50
@@ -35,10 +35,6 @@ def post_process(batch_path, uuid, data_path):
     model.estimates.threshold_spatial_components(maxthr=0.01)
 
     model.estimates.remove_small_large_neurons(min_size_neuro=min_size, max_size_neuro=max_size, select_comp=True)
-    if model.estimates.idx_components is None:
-        print("After thresholding/removing small-large neurons, idx_components is None")
-    else:
-        print(f"Number of components - remove small/large: {len(model.estimates.idx_components)}")
 
     # make output summary dir
     output_summary_dir = Path(batch_path).parent.joinpath(".segmentation")
